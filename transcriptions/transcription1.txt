@@ -1,0 +1,2 @@
+[0.00s -> 14.00s]  Hi, this is audio testing for the recording.py to test whether it's recording the audio or not for my new project AI Voice Assistant.
+[14.00s -> 19.00s]  We'll be stopping the audio now.
