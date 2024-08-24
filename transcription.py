@@ -16,7 +16,11 @@ print("Detected language '%s' with probability %f" % (info.language, info.langua
 for segment in segments:
     print("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
 
-segments, _ = model.transcribe(audio_file)
+segments, _ = model.transcribe(
+    audio_file,
+    vad_filter=True,
+    vad_parameters=dict(min_silence_duration_ms=500),
+)
 segments = list(segments)  # The transcription will actually run here.
 
 # Save transcription to a file
