@@ -1,1 +1,1 @@
-Andrej Karpathy, the former Director of AI at Tesla, emphasizes the importance of simplicity and focus in his advice. He suggests that the best way to make progress in AI is to:
+Paul Graham's advice on building sustainable startups is to "Make something people want."

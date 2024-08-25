@@ -1,1 +1,1 @@
-[1.07s -> 4.23s]  What is the best advice by Andre Karpathy?
+[0.85s -> 6.29s]  Give me one Paul Graham advice on building sustainable startups.

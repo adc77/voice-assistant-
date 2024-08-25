@@ -35,7 +35,7 @@ chat_completion = client.chat.completions.create(
     ],
     model="llama3-8b-8192",
     temperature=0.2, # more deterministic
-    max_tokens=40,
+    max_tokens=50,
     top_p=0.9,
     stop=["\n"], # stop generation at a logical stopping point
     stream=False,
