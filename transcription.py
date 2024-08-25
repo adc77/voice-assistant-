@@ -1,6 +1,8 @@
 import os
 from faster_whisper import WhisperModel
 
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 # Create transcriptions directory if it doesn't exist
 if not os.path.exists("transcriptions"):
     os.makedirs("transcriptions")
