@@ -79,7 +79,7 @@ def generate_response(transcription_file):
 
     chat_completion = client.chat.completions.create(
         messages=[
-            {"role": "system", "content": "you are a concise and focused assistant."},
+            {"role": "system", "content": "you are a concise and focused assistant that answers to the point without yapping."},
             {"role": "user", "content": user_message}
         ],
         model="llama3-8b-8192",
