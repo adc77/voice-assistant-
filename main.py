@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+
 def run_script(script_name):
     result = subprocess.run(["python", script_name], capture_output=True, text=True)
     if result.returncode != 0:

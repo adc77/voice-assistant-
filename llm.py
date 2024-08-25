@@ -1,8 +1,18 @@
 import os
+import sys
+sys.path.append('myenv\Lib\site-packages\groq')
 from groq import Groq
 
+# Get the API key from the environment variable
+#api_key = os.getenv('GROQ_API_KEY')
+
+api_key = "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"
+
+# Initialize Groq client with the API key
+client = Groq(api_key=api_key)
+
 # Initialize Groq client
-client = Groq()
+# client = Groq()
 
 # Directories for input and output
 TRANSCRIPTION_DIR = "transcriptions"
