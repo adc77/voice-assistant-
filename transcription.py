@@ -1,5 +1,6 @@
 import os
 from faster_whisper import WhisperModel
+from groq import Groq
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -37,8 +38,11 @@ with open(transcription_file, "w") as f:
 
 print(f"Transcription saved to {transcription_file}")
 """
+
+api_key = "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"
+
  # Initialize the Groq client -- groq approach for transcription!
-client = Groq()
+client = Groq(api_key=api_key)
 
     # Open the audio file
 with open(audio_file, "rb") as file:
@@ -47,7 +51,7 @@ with open(audio_file, "rb") as file:
             file=(audio_file, file.read()),  # Required audio file
             model="distil-whisper-large-v3-en",  # Required model to use for transcription
             prompt="",  # Optional context or spelling prompt
-            response_format="json",  # Optional format of the response
+            response_format="text",  # Optional format of the response
             language="en",  # Optional language
             temperature=0.0  # Optional temperature for transcription creativity
         )
@@ -68,4 +72,4 @@ with open(transcription_file, "w") as f:
         f.write(transcription.text)
     
 print(f"Transcription saved to {transcription_file}")
-return transcription_file
+# return transcription_file

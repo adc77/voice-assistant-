@@ -54,6 +54,7 @@ def record_audio(filename):
     print(f"Audio saved as {filename}")
 
 def transcribe_audio(audio_file):
+    """
     model_size = "large-v3"
     model = WhisperModel(model_size, device="cpu", compute_type="int8")
     segments, _ = model.transcribe(audio_file, vad_filter=True, vad_parameters=dict(min_silence_duration_ms=500))
@@ -65,6 +66,41 @@ def transcribe_audio(audio_file):
         for segment in segments:
             f.write(f"[{segment.start:.2f}s -> {segment.end:.2f}s] {segment.text}\n")
 
+    print(f"Transcription saved to {transcription_file}")
+    return transcription_file
+    """
+    api_key = "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"
+    
+     # Initialize the Groq client
+    client = Groq(api_key=api_key)
+
+    # Open the audio file
+    with open(audio_file, "rb") as file:
+        # Create a transcription of the audio file
+        transcription = client.audio.transcriptions.create(
+            file=(audio_file, file.read()),  # Required audio file
+            model="distil-whisper-large-v3-en",  # Required model to use for transcription
+            prompt="",  # Optional context or spelling prompt
+            response_format="text",  # Set response format to 'text' for plain text output
+            language="en",  # Optional language
+            temperature=0.0  # Optional temperature for transcription creativity
+        )
+    
+    # Find the next available transcription index
+    transcription_index = max(
+        [
+            int(f[len('transcription'):-4])
+            for f in os.listdir(TRANSCRIPTION_DIR)
+            if f.startswith("transcription") and f.endswith(".txt")
+        ],
+        default=0
+    ) + 1
+    
+    # Save the transcription to a text file
+    transcription_file = os.path.join(TRANSCRIPTION_DIR, f"transcription{transcription_index}.txt")
+    with open(transcription_file, "w") as f:
+        f.write(transcription)  # Write the plain text transcription directly
+    
     print(f"Transcription saved to {transcription_file}")
     return transcription_file
 
