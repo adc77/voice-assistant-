@@ -3,7 +3,7 @@ import json
 import websockets
 import webrtcvad
 import numpy as np
-from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
+from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack, RTCIceCandidate
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
 from pipeline import transcribe_audio, generate_response, text_to_speech
 
@@ -62,6 +62,7 @@ async def handle_audio_processing(track):
             if audio_response:
                 # Here you would send the audio_response back to the client
                 # For now, we'll just print it
+                return audio_response
                 print("Audio response generated")
         except Exception as e:
             print(f"Error processing audio: {e}")
@@ -69,6 +70,12 @@ async def handle_audio_processing(track):
 async def handle_connection(websocket, path):
     pc = RTCPeerConnection()
     recorder = MediaBlackhole()
+
+    @pc.on("iceconnectionstatechange")
+    async def on_iceconnectionstatechange():
+        print("ICE connection state is", pc.iceConnectionState)
+        if pc.iceConnectionState == "failed":
+            await pc.close()
 
     @pc.on("track")
     def on_track(track):
@@ -90,10 +97,24 @@ async def handle_connection(websocket, path):
                     "sdp": pc.localDescription.sdp,
                 }))
             elif msg["type"] == "ice":
-                candidate = json.loads(msg["candidate"])
-                await pc.addIceCandidate(candidate)
+                if msg["candidate"]:
+                    candidate = RTCIceCandidate(
+                        sdpMid=msg["candidate"].get("sdpMid"),
+                        sdpMLineIndex=msg["candidate"].get("sdpMLineIndex"),
+                        foundation=msg["candidate"].get("foundation"),
+                        component=msg["candidate"].get("component"),
+                        protocol=msg["candidate"].get("protocol"),
+                        priority=msg["candidate"].get("priority"),
+                        ip=msg["candidate"].get("address"),
+                        port=msg["candidate"].get("port"),
+                        type=msg["candidate"].get("type"),
+                        tcpType=msg["candidate"].get("tcpType")
+                    )
+                    await pc.addIceCandidate(candidate)
     except websockets.exceptions.ConnectionClosed:
         print("WebSocket connection closed")
+    except Exception as e:
+        print(f"An error occurred: {e}")
     finally:
         await recorder.stop()
         await pc.close()

@@ -30,7 +30,18 @@ async function start() {
                 if (e.candidate) {
                     ws.send(JSON.stringify({ 
                         type: 'ice', 
-                        candidate: JSON.stringify(e.candidate) 
+                        candidate: {
+                            sdpMid: e.candidate.sdpMid,
+                            sdpMLineIndex: e.candidate.sdpMLineIndex,
+                            foundation: e.candidate.foundation,
+                            component: e.candidate.component,
+                            protocol: e.candidate.protocol,
+                            priority: e.candidate.priority,
+                            address: e.candidate.address,
+                            port: e.candidate.port,
+                            type: e.candidate.type,
+                            tcpType: e.candidate.tcpType
+                        }
                     }));
                 }
             };
