@@ -8,7 +8,7 @@ from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
 from pipeline import transcribe_audio, generate_response, text_to_speech
 
 # Initialize VAD
-vad = webrtcvad.Vad(3)  # Aggressiveness level 3
+vad = webrtcvad.Vad(3)  
 
 class AudioTrack(MediaStreamTrack):
     kind = "audio"
@@ -27,7 +27,8 @@ async def process_audio(track):
     audio_data = b''
     is_speech = False
     silence_count = 0
-    SILENCE_THRESHOLD = 10  # Number of silent frames before processing
+    #Number of silent frames before processing
+    SILENCE_THRESHOLD = 10
 
     while True:
         frame = await track.recv()
