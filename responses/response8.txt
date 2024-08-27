@@ -1,0 +1,1 @@
+VibRTC is a decentralized video conferencing platform that utilizes blockchain technology to ensure secure and transparent communication.

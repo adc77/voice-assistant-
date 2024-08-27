@@ -9,6 +9,7 @@ from datasets import load_dataset
 import soundfile as sf
 import torch
 import playsound
+from gtts import gTTS
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
@@ -123,6 +124,7 @@ def generate_response(transcription_file):
     return response_file
 
 def text_to_speech(response_file):
+    """
     processor = SpeechT5Processor.from_pretrained("microsoft/speecht5_tts")
     model = SpeechT5ForTextToSpeech.from_pretrained("microsoft/speecht5_tts")
     vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan")
@@ -141,6 +143,18 @@ def text_to_speech(response_file):
     output_file = os.path.join(OUTPUT_DIR, f"output{output_index}.mp3")
     sf.write(output_file, speech.numpy(), samplerate=16000)
 
+    print(f"Audio saved to {output_file}")
+    return output_file
+    """
+    with open(response_file, 'r') as file:
+        input_text = file.read().strip()
+
+    # Generate speech using gTTS
+    tts = gTTS(text=input_text, lang='en')
+    output_index = max([int(f[len('output'):-4]) for f in os.listdir(OUTPUT_DIR) if f.startswith("output") and f.endswith(".mp3")], default=0) + 1
+    output_file = os.path.join(OUTPUT_DIR, f"output{output_index}.mp3")
+    
+    tts.save(output_file)
     print(f"Audio saved to {output_file}")
     return output_file
 
