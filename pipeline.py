@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pyaudio
 import wave
 import threading
@@ -13,6 +14,7 @@ from gtts import gTTS
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
+"""
 # Parameters for recording
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -53,8 +55,15 @@ def record_audio(filename):
     wf.writeframes(b''.join(frames))
     wf.close()
     print(f"Audio saved as {filename}")
+"""
 
 def transcribe_audio(audio_file):
+    print("Transcribing audio...")
+
+    # Save the audio data to a temporary file
+    temp_file = "temp_audio.wav"
+    sf.write(temp_file, np.frombuffer(audio_data, dtype=np.int16), 48000)
+
     api_key = os.getenv('GROQ_API_KEY')
     #api_key = "GROQ_API_KEY"
     
@@ -73,6 +82,7 @@ def transcribe_audio(audio_file):
             temperature=0.0  # Optional temperature for transcription creativity
         )
     
+    """
     # Find the next available transcription index
     transcription_index = max(
         [
@@ -90,8 +100,12 @@ def transcribe_audio(audio_file):
     
     print(f"Transcription saved to {transcription_file}")
     return transcription_file
+    """
+    os.remove(temp_file)
+    return transcription
 
 def generate_response(transcription_file):
+    print("Generating response...")
     api_key = os.getenv('GROQ_API_KEY')
     
     client = Groq(api_key=api_key)
@@ -113,7 +127,9 @@ def generate_response(transcription_file):
     )
 
     response_content = chat_completion.choices[0].message.content
+    return response_content
 
+    """
     response_index = max([int(f[len('response'):-4]) for f in os.listdir(RESPONSE_DIR) if f.startswith("response") and f.endswith(".txt")], default=0) + 1
     response_file = os.path.join(RESPONSE_DIR, f"response{response_index}.txt")
 
@@ -122,8 +138,10 @@ def generate_response(transcription_file):
 
     print(f"Response saved to {response_file}")
     return response_file
+    """
 
 def text_to_speech(response_file):
+    print("Converting text to speech...")
     """
     processor = SpeechT5Processor.from_pretrained("microsoft/speecht5_tts")
     model = SpeechT5ForTextToSpeech.from_pretrained("microsoft/speecht5_tts")
@@ -146,6 +164,7 @@ def text_to_speech(response_file):
     print(f"Audio saved to {output_file}")
     return output_file
     """
+    """
     with open(response_file, 'r') as file:
         input_text = file.read().strip()
 
@@ -157,7 +176,18 @@ def text_to_speech(response_file):
     tts.save(output_file)
     print(f"Audio saved to {output_file}")
     return output_file
-
+    """
+    tts = gTTS(text=input_text, lang='en')
+    temp_file = "temp_output.mp3"
+    tts.save(temp_file)
+    
+    # Read the audio file and return the binary data
+    with open(temp_file, 'rb') as file:
+        audio_data = file.read()
+    
+    os.remove(temp_file)
+    return audio_data
+"""
 def main():
     if not os.path.exists(RECORD_DIRECTORY):
         os.makedirs(RECORD_DIRECTORY)
@@ -183,4 +213,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-
+"""

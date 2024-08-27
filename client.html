@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        button {
+            font-size: 1.2rem;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        #status {
+            margin-top: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Voice Assistant</h1>
+        <button id="startButton">Start</button>
+        <button id="stopButton" disabled>Stop</button>
+        <div id="status">Ready</div>
+    </div>
+    <script src="client.js"></script>
+</body>
+</html>
