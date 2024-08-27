@@ -39,7 +39,7 @@ with open(transcription_file, "w") as f:
 print(f"Transcription saved to {transcription_file}")
 """
 
-api_key = "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"
+api_key = os.getenv('GROQ_API_KEY')
 
  # Initialize the Groq client -- groq approach for transcription!
 client = Groq(api_key=api_key)
