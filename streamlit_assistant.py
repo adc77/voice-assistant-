@@ -30,30 +30,45 @@ def record_audio(filename):
     wf.setframerate(RATE)
     wf.writeframes(b''.join(frames))
     wf.close()
-    st.write(f"Audio saved as {filename}")
+    
+    # Debugging statement to confirm file creation
+    if os.path.exists(filename):
+        st.write(f"Audio saved as {filename}")
+    else:
+        st.write(f"Error: Audio file {filename} was not created.")
+    
     return filename
 
 # Streamlit UI
 st.title("Speech-to-Speech Voice Assistant")
 
+# Initialize session state variables
 if 'recording' not in st.session_state:
     st.session_state.recording = False
+if 'output_filename' not in st.session_state:
+    st.session_state.output_filename = None
 
 if st.button("Start Recording"):
     if not st.session_state.recording:
         st.session_state.recording = True
+        if not os.path.exists("recordings"):
+            os.makedirs("recordings")
         files = os.listdir("recordings")
         index = max([int(f[5:-4]) for f in files if f.startswith("audio") and f.endswith(".wav")], default=0) + 1
-        output_filename = os.path.join("recordings", f"audio{index}.wav")
-        record_audio(output_filename)
+        st.session_state.output_filename = os.path.join("recordings", f"audio{index}.wav")
+        record_audio(st.session_state.output_filename)
 
 if st.button("Stop Recording"):
     if st.session_state.recording:
         st.session_state.recording = False
 
         # Now process the audio
-        transcription_file = transcribe_audio(output_filename)
-        response_file = generate_response(transcription_file)
-        audio_output_file = text_to_speech(response_file)
-        st.write("Playing the response...")
-        st.audio(audio_output_file)
+        if st.session_state.output_filename:
+            if os.path.exists(st.session_state.output_filename):
+                transcription_file = transcribe_audio(st.session_state.output_filename)
+                response_file = generate_response(transcription_file)
+                audio_output_file = text_to_speech(response_file)
+                st.write("Playing the response...")
+                st.audio(audio_output_file)
+            else:
+                st.write("Error: Recorded audio file not found.")
