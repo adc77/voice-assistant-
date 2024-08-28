@@ -5,10 +5,17 @@ import webrtcvad
 import numpy as np
 from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack, RTCIceCandidate
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRecorder
+from aiortc.mediastreams import AudioFrame
 from pipeline import transcribe_audio, generate_response, text_to_speech
+import logging
+import traceback
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Initialize VAD
-vad = webrtcvad.Vad(3)  
+vad = webrtcvad.Vad(3)
 
 class AudioTrack(MediaStreamTrack):
     kind = "audio"
@@ -16,57 +23,78 @@ class AudioTrack(MediaStreamTrack):
     def __init__(self, track):
         super().__init__()
         self.track = track
-        self.buffer = []
 
     async def recv(self):
         frame = await self.track.recv()
-        self.buffer.append(frame)
         return frame
 
 async def process_audio(track):
     audio_data = b''
     is_speech = False
     silence_count = 0
-    #Number of silent frames before processing
     SILENCE_THRESHOLD = 10
+    FRAME_DURATION = 30  # in milliseconds
 
     while True:
-        frame = await track.recv()
-        chunk = frame.to_ndarray().tobytes()
-        
-        # Check for speech
-        if vad.is_speech(chunk, sample_rate=48000):
-            is_speech = True
-            silence_count = 0
-            audio_data += chunk
-        else:
-            silence_count += 1
+        try:
+            frame = await track.recv()
+            if not isinstance(frame, AudioFrame):
+                continue
 
-        if is_speech and silence_count >= SILENCE_THRESHOLD:
-            # Process the collected audio
-            transcription = transcribe_audio(audio_data)
-            response = generate_response(transcription)
-            audio_response = text_to_speech(response)
-            
-            # Reset for next utterance
-            audio_data = b''
-            is_speech = False
-            silence_count = 0
+            # Ensure the audio data is in the correct format for webrtcvad
+            audio = frame.to_ndarray()
+            audio_bytes = audio.tobytes()
 
-            # Return the audio response
-            return audio_response
+            # webrtcvad requires 16-bit PCM audio
+            if frame.format.bits != 16:
+                logger.warning(f"Unexpected audio format: {frame.format.bits} bits")
+                continue
 
-async def handle_audio_processing(track):
+            try:
+                is_speech_frame = vad.is_speech(audio_bytes, sample_rate=frame.sample_rate)
+            except Exception as e:
+                logger.error(f"VAD error: {e}")
+                continue
+
+            if is_speech_frame:
+                is_speech = True
+                silence_count = 0
+                audio_data += audio_bytes
+            else:
+                silence_count += 1
+
+            if is_speech and silence_count >= SILENCE_THRESHOLD:
+                try:
+                    transcription = transcribe_audio(audio_data)
+                    response = generate_response(transcription)
+                    audio_response = text_to_speech(response)
+                    
+                    audio_data = b''
+                    is_speech = False
+                    silence_count = 0
+
+                    return audio_response
+                except Exception as e:
+                    logger.error(f"Error in audio processing pipeline: {e}")
+                    logger.debug(traceback.format_exc())
+                    return None
+        except Exception as e:
+            logger.error(f"Error while processing frame: {e}")
+            logger.debug(traceback.format_exc())
+
+async def handle_audio_processing(track, websocket):
     while True:
         try:
             audio_response = await process_audio(track)
             if audio_response:
-                # Here you would send the audio_response back to the client
-                # For now, we'll just print it
-                return audio_response
-                print("Audio response generated")
+                await websocket.send(json.dumps({
+                    "type": "audio",
+                    "data": audio_response.decode('latin1')
+                }))
+                logger.info("Audio response sent to client")
         except Exception as e:
-            print(f"Error processing audio: {e}")
+            logger.error(f"Error in audio processing: {e}")
+            logger.debug(traceback.format_exc())
 
 async def handle_connection(websocket, path):
     pc = RTCPeerConnection()
@@ -74,7 +102,7 @@ async def handle_connection(websocket, path):
 
     @pc.on("iceconnectionstatechange")
     async def on_iceconnectionstatechange():
-        print("ICE connection state is", pc.iceConnectionState)
+        logger.info(f"ICE connection state is {pc.iceConnectionState}")
         if pc.iceConnectionState == "failed":
             await pc.close()
 
@@ -83,7 +111,7 @@ async def handle_connection(websocket, path):
         if track.kind == "audio":
             audio_track = AudioTrack(track)
             pc.addTrack(audio_track)
-            asyncio.create_task(handle_audio_processing(audio_track))
+            asyncio.create_task(handle_audio_processing(audio_track, websocket))
 
     try:
         async for message in websocket:
@@ -99,23 +127,24 @@ async def handle_connection(websocket, path):
                 }))
             elif msg["type"] == "ice":
                 if msg["candidate"]:
-                    candidate = RTCIceCandidate(
-                        sdpMid=msg["candidate"].get("sdpMid"),
-                        sdpMLineIndex=msg["candidate"].get("sdpMLineIndex"),
-                        foundation=msg["candidate"].get("foundation"),
-                        component=msg["candidate"].get("component"),
-                        protocol=msg["candidate"].get("protocol"),
-                        priority=msg["candidate"].get("priority"),
-                        ip=msg["candidate"].get("address"),
-                        port=msg["candidate"].get("port"),
-                        type=msg["candidate"].get("type"),
-                        tcpType=msg["candidate"].get("tcpType")
-                    )
-                    await pc.addIceCandidate(candidate)
+                    try:
+                        candidate_init = {
+                            "sdpMid": msg["candidate"].get("sdpMid"),
+                            "sdpMLineIndex": msg["candidate"].get("sdpMLineIndex"),
+                            "candidate": msg["candidate"].get("candidate")
+                        }
+                        candidate = RTCIceCandidate(candidate_init)
+                        await pc.addIceCandidate(candidate)
+                    except Exception as e:
+                        logger.error(f"Error adding ICE candidate: {e}")
+                        logger.debug(traceback.format_exc())
     except websockets.exceptions.ConnectionClosed:
-        print("WebSocket connection closed")
+        logger.info("WebSocket connection closed")
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON received")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
+        logger.debug(traceback.format_exc())
     finally:
         await recorder.stop()
         await pc.close()
@@ -128,7 +157,7 @@ async def main():
         ping_interval=None,
         ping_timeout=None
     )
-    print("WebSocket server started on ws://localhost:8080")
+    logger.info("WebSocket server started on ws://localhost:8080")
     await server.wait_closed()
 
 if __name__ == "__main__":
